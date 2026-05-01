@@ -68,6 +68,7 @@ src/
     ├── SignIn.jsx
     ├── SignUp.jsx
     └── OriginalPage.jsx         # Upload / paste / type interface
+    └── SummarizedPage.jsx       # Ouputs summary
 ```
 
 ---
