@@ -5,11 +5,13 @@ import { createContext, useContext, useState } from "react";
  * Global state shared across Original, Summarized, and Graph pages.
  *
  * State:
- *  - mode          "bullet" | "paragraph"
+ *  - mode          "concise" | "detailed" | "bullet"
  *  - uploadedFile  File | null
  *  - pastedText    string
  *  - extractedText string   (plain text from parsed file or paste)
- *  - summary       string   (AI-generated summary result)
+ *  - summary       string   (active AI-generated summary result)
+ *  - summaryVariants object (summary output by mode)
+ *  - keyTerms      object   (graph nodes and edges)
  *  - activeTab     "original" | "summarized" | "graph"
  *  - sidebarOpen   boolean
  */
@@ -17,11 +19,17 @@ import { createContext, useContext, useState } from "react";
 const DocumentContext = createContext(null);
 
 export function DocumentProvider({ children }) {
-  const [mode, setMode]               = useState("bullet");
+  const [mode, setMode]               = useState("concise");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [pastedText, setPastedText]   = useState("");
   const [extractedText, setExtractedText] = useState("");
   const [summary, setSummary]         = useState("");
+  const [summaryVariants, setSummaryVariants] = useState({
+    concise: "",
+    detailed: "",
+    bullet: "",
+  });
+  const [keyTerms, setKeyTerms]       = useState({ nodes: [], edges: [] });
   const [activeTab, setActiveTab]     = useState("original");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -34,6 +42,8 @@ export function DocumentProvider({ children }) {
     setPastedText("");
     setExtractedText("");
     setSummary("");
+    setSummaryVariants({ concise: "", detailed: "", bullet: "" });
+    setKeyTerms({ nodes: [], edges: [] });
   }
 
   return (
@@ -44,6 +54,8 @@ export function DocumentProvider({ children }) {
         pastedText, setPastedText,
         extractedText, setExtractedText,
         summary, setSummary,
+        summaryVariants, setSummaryVariants,
+        keyTerms, setKeyTerms,
         activeTab, setActiveTab,
         sidebarOpen, toggleSidebar,
         resetDocument,

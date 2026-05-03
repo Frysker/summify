@@ -1,50 +1,109 @@
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "../components/layout/AppLayout";
-import ModeToggle from "../components/ui/ModeToggle";
-import SummaryContent from "../components/ui/SummaryContent";
+import MobileShell, { FileTextIcon, SummaryFooter } from "../components/layout/MobileShell";
 import { useDocument } from "../context/DocumentContext";
+
+const modes = [
+  { key: "concise", label: "Concise" },
+  { key: "detailed", label: "Detailed" },
+  { key: "bullet", label: "Bullet" },
+];
 
 export default function SummarizedPage() {
   const navigate = useNavigate();
-  const { summary, mode, setActiveTab } = useDocument();
-  const hasSummary = Boolean(summary?.trim());
+  const {
+    mode,
+    setMode,
+    summary,
+    setSummary,
+    summaryVariants,
+    setActiveTab,
+  } = useDocument();
 
-  function handleGoToOriginal() {
-    setActiveTab("original");
-    navigate("/app/original");
+  const activeSummary = summaryVariants?.[mode] || summary;
+  const hasSummary = Boolean(activeSummary?.trim());
+  const wordCount = useMemo(() => countWords(activeSummary), [activeSummary]);
+
+  useEffect(() => {
+    setActiveTab("summarized");
+  }, [setActiveTab]);
+
+  useEffect(() => {
+    if (summaryVariants?.[mode]) setSummary(summaryVariants[mode]);
+  }, [mode, setSummary, summaryVariants]);
+
+  function exportSummary() {
+    if (!activeSummary?.trim()) return;
+
+    const blob = new Blob([activeSummary], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `summify-${mode}-summary.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
-    <AppLayout>
-      <div className="flex flex-col flex-1 px-4 pt-5 pb-0">
-        <div className="flex justify-center mb-0">
-          <ModeToggle defaultExpanded={hasSummary} />
+    <MobileShell
+      topTabs
+      footer={
+        <SummaryFooter
+          wordCount={wordCount}
+          actionLabel="Export"
+          actionIcon={<FileTextIcon />}
+          disabled={!hasSummary}
+          onAction={exportSummary}
+        />
+      }
+    >
+      <div className="summary-page">
+        <div className="summary-mode-tabs" aria-label="Summary modes">
+          {modes.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`summary-mode-tabs__button${mode === item.key ? " is-active" : ""}`}
+              onClick={() => setMode(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-        <div className="w-full h-px bg-[#E0E0E0] mt-4 mb-4" />
-        <div className="flex flex-col flex-1">
-          {!hasSummary && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-3 pb-20">
-              <p className="font-['Poppins'] text-[13px] text-[#B8C5B1] text-center leading-relaxed">
-                No summary yet. Go to{" "}
-                <button type="button" onClick={handleGoToOriginal}
-                  className="text-[#8D7C66] font-medium hover:underline transition-colors duration-200">
-                  Original
-                </button>
-                {" "}and press Summarize.
-              </p>
-            </div>
-          )}
-          {hasSummary && (
-            <div className="animate-[fadeSlideUp_0.25s_ease_both]">
-              <SummaryContent summary={summary} mode={mode} />
-            </div>
-          )}
-        </div>
+
+        {!hasSummary && (
+          <p className="summary-hint">
+            No summary yet. Go to{" "}
+            <button type="button" className="text-current underline" onClick={() => navigate("/app/original")}>
+              Original
+            </button>{" "}
+            and press Summarize.
+          </p>
+        )}
+
+        {hasSummary && mode !== "bullet" && (
+          <p className="summary-text">{activeSummary}</p>
+        )}
+
+        {hasSummary && mode === "bullet" && (
+          <ul className="summary-list">
+            {toBulletItems(activeSummary).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        )}
       </div>
-      <div className="w-full flex-shrink-0">
-        <div className="w-full h-px bg-[#E0E0E0]" />
-        <div className="h-[60px]" />
-      </div>
-    </AppLayout>
+    </MobileShell>
   );
+}
+
+function countWords(text) {
+  return text?.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+function toBulletItems(text) {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-*]\s+/, "").replace(/^\s*\d+[.)]\s+/, "").trim())
+    .filter(Boolean);
 }
