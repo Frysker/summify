@@ -1,10 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+} from "firebase/auth";
+import { auth, googleProvider } from "../services/firebase";
 
+/**
+ * useAuth
+ * Handles form state, validation, and Firebase auth calls
+ * for SignIn and SignUp pages.
+ */
 export function useAuth() {
   const navigate = useNavigate();
-  const [fields, setFields] = useState({});
-  const [errors, setErrors] = useState({});
+  const [fields,  setFields]  = useState({});
+  const [errors,  setErrors]  = useState({});
   const [loading, setLoading] = useState(false);
 
   function handleChange(event) {
@@ -13,78 +25,100 @@ export function useAuth() {
     setErrors((current) => ({ ...current, [name]: "" }));
   }
 
+  /* ── Sign In ────────────────────────────────────────────── */
   async function handleSignIn(event) {
     event.preventDefault();
     const validation = validateSignIn(fields);
-    if (Object.keys(validation).length) {
-      setErrors(validation);
-      return;
-    }
+    if (Object.keys(validation).length) { setErrors(validation); return; }
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await signInWithEmailAndPassword(auth, fields.email.trim(), fields.password);
       navigate("/app/home");
-    } catch {
-      setErrors({ password: "Invalid email or password." });
+    } catch (err) {
+      setErrors({ password: friendlyError(err.code) });
     } finally {
       setLoading(false);
     }
   }
 
+  /* ── Sign Up ────────────────────────────────────────────── */
   async function handleSignUp(event) {
     event.preventDefault();
     const validation = validateSignUp(fields);
-    if (Object.keys(validation).length) {
-      setErrors(validation);
-      return;
-    }
+    if (Object.keys(validation).length) { setErrors(validation); return; }
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      navigate("/sign-in");
-    } catch {
-      setErrors({ email: "This email may already be in use." });
+      const credential = await createUserWithEmailAndPassword(
+        auth,
+        fields.email.trim(),
+        fields.password
+      );
+      // Set the display name from the username field
+      await updateProfile(credential.user, { displayName: fields.username.trim() });
+      navigate("/app/home");
+    } catch (err) {
+      setErrors({ email: friendlyError(err.code) });
     } finally {
       setLoading(false);
     }
   }
 
-  function handleGoogle() {
-    navigate("/app/home");
+  /* ── Google OAuth ───────────────────────────────────────── */
+  async function handleGoogle() {
+    setLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate("/app/home");
+    } catch (err) {
+      // User closed popup — not an error worth showing
+      if (err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request") {
+        setErrors({ email: friendlyError(err.code) });
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
-  return {
-    fields,
-    errors,
-    loading,
-    handleChange,
-    handleSignIn,
-    handleSignUp,
-    handleGoogle,
-  };
+  return { fields, errors, loading, handleChange, handleSignIn, handleSignUp, handleGoogle };
 }
 
+/* ── Validators ─────────────────────────────────────────────── */
 function validateSignIn({ email, password }) {
-  const errors = {};
-  if (!email) errors.email = "Email is required.";
-  else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
-  if (!password) errors.password = "Password is required.";
-  return errors;
+  const errs = {};
+  if (!email)                   errs.email    = "Email is required.";
+  else if (!isValidEmail(email)) errs.email   = "Enter a valid email address.";
+  if (!password)                errs.password = "Password is required.";
+  return errs;
 }
 
 function validateSignUp({ username, email, password }) {
-  const errors = {};
-  if (!username) errors.username = "Username is required.";
-  else if (username.length < 3) errors.username = "At least 3 characters.";
-  if (!email) errors.email = "Email is required.";
-  else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
-  if (!password) errors.password = "Password is required.";
-  else if (password.length < 8) errors.password = "At least 8 characters.";
-  return errors;
+  const errs = {};
+  if (!username)                  errs.username = "Username is required.";
+  else if (username.length < 3)   errs.username = "At least 3 characters.";
+  if (!email)                     errs.email    = "Email is required.";
+  else if (!isValidEmail(email))  errs.email    = "Enter a valid email address.";
+  if (!password)                  errs.password = "Password is required.";
+  else if (password.length < 8)   errs.password = "At least 8 characters.";
+  return errs;
 }
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/* ── Firebase error → human-readable ────────────────────────── */
+function friendlyError(code) {
+  const map = {
+    "auth/user-not-found":        "No account found with this email.",
+    "auth/wrong-password":        "Incorrect password.",
+    "auth/invalid-credential":    "Invalid email or password.",
+    "auth/email-already-in-use":  "This email is already registered.",
+    "auth/weak-password":         "Password must be at least 6 characters.",
+    "auth/invalid-email":         "Enter a valid email address.",
+    "auth/too-many-requests":     "Too many attempts. Please try again later.",
+    "auth/network-request-failed":"Network error. Check your connection.",
+  };
+  return map[code] ?? "Something went wrong. Please try again.";
 }
