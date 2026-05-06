@@ -18,7 +18,6 @@ export function extractKeyTerms(raw) {
     }));
 
   const nodeIds = new Set(nodes.map((n) => n.id));
-
   const edges = (parsed?.edges ?? [])
     .filter((e) => e?.source && e?.target && nodeIds.has(String(e.source)) && nodeIds.has(String(e.target)))
     .map((e, i) => ({

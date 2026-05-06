@@ -614,8 +614,7 @@
 }
 
 .history-page,
-.profile-page,
-.graph-page {
+.profile-page {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -905,45 +904,94 @@
 }
 
 .graph-page {
-  padding: 0;
-}
-
-.graph-map {
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  height: 100%;
-  min-height: 745px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
   width: 100%;
 }
 
+.graph-svg {
+  display: block;
+  flex: 1;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  width: 100%;
+}
+
+/* SAMPLE BADGE */
+.graph-sample-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  left: 50%;
+  padding: 4px 14px;
+  pointer-events: none;
+  position: absolute;
+  top: 12px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 2;
+}
+
 .graph-line {
-  stroke: #6f6f6f;
-  stroke-width: 0.65;
+  stroke: var(--border-default);
+  stroke-width: 3;
+  pointer-events: none;
 }
 
-.graph-key {
+.graph-center-circle {
+  fill: var(--text-primary);
+}
+
+.graph-center-label {
+  fill: var(--bg-page);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.graph-node-group {
+  cursor: grab;
+}
+
+.graph-node-group:active {
+  cursor: grabbing;
+}
+
+.graph-node-rect {
+  fill: var(--bg-card);
+  stroke: var(--border-default);
+  stroke-width: 1;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.graph-node-group:hover .graph-node-rect {
+  fill: var(--bg-input);
+  stroke: var(--color-primary);
+}
+
+.graph-node-label {
   fill: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 18px;
-  text-anchor: middle;
-}
-
-.graph-node {
-  fill: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 12px;
-  text-anchor: middle;
-}
-
-.graph-node--primary {
-  font-size: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* ── Profile avatar — photo (Google accounts) ──────────────── */
 .profile-avatar-img {
   width: 100%;
   height: 100%;
