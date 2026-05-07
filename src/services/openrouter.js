@@ -1,6 +1,12 @@
-const BASE_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL    = import.meta.env.VITE_OPENROUTER_MODEL ?? 'llama-3.3-70b-versatile';
-const API_KEY  = import.meta.env.VITE_OPENROUTER_API_KEY;
+/**
+ * PROXY URL — points to the Cloudflare Worker that holds the Groq API key.
+ * The key is NEVER shipped to the browser.
+ *
+ * Local dev:  set VITE_PROXY_URL=http://localhost:8787 (wrangler dev)
+ * Production: set VITE_PROXY_URL=https://summify-proxy.<your-subdomain>.workers.dev
+ */
+const PROXY_URL = import.meta.env.VITE_PROXY_URL;
+const MODEL     = import.meta.env.VITE_OPENROUTER_MODEL ?? 'llama-3.3-70b-versatile';
 
 /**
  * @param {Array<{role: string, content: string}>} messages
@@ -9,7 +15,7 @@ const API_KEY  = import.meta.env.VITE_OPENROUTER_API_KEY;
  */
 
 export async function callOpenRouter(messages, responseFormat = 'text') {
-  if (!API_KEY) throw new Error('Missing VITE_OPENROUTER_API_KEY in environment.');
+  if (!PROXY_URL) throw new Error('Missing VITE_PROXY_URL in environment. See worker/index.js for setup.');
 
   const resolvedMessages = responseFormat === 'json'
     ? enforceJsonInSystemPrompt(messages)
@@ -18,15 +24,14 @@ export async function callOpenRouter(messages, responseFormat = 'text') {
   const body = {
     model: MODEL,
     messages: resolvedMessages,
-    max_tokens: 1024,
+    max_tokens: 2048,
     temperature: 0.3,
   };
 
-  const res = await fetch(BASE_URL, {
+  const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify(body),
   });

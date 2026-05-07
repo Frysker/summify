@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../services/firebase";
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 import ToggleSwitch from "../components/ui/ToggleSwitch";
-import { useDocument } from "../context/DocumentContext";
 import { useTheme } from "../context/ThemeContext";
 
 /* ── Icons ──────────────────────────────────────────────────── */
@@ -84,7 +85,8 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const { darkMode, setDarkMode, dyslexicFont, setDyslexicFont } = useTheme();
 
-  function handleLogout() {
+  async function handleLogout() {
+    await signOut(auth);
     navigate("/sign-in");
   }
 
